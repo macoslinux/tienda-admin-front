@@ -7,18 +7,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
 import {
   BoxCubeIcon,
-  CalenderIcon,
   ChevronDownIcon,
   DocsIcon,
   DollarLineIcon,
   GridIcon,
   HorizontaLDots,
-  ListIcon,
-  PageIcon,
   PieChartIcon,
   PlugInIcon,
-  TableIcon,
-  UserCircleIcon,
 } from "../icons/index";
 
 type NavItem = {
@@ -56,7 +51,7 @@ const navItems: NavItem[] = [
       {
         name: "Ordenes",
         path: "/orders",
-        subPaths: ["/orders/:id"],
+        subPaths: ["/orders/"],
       },
     ],
   },
@@ -215,7 +210,7 @@ const AppSidebar: React.FC = () => {
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // const isActive = (path: string) => path === pathname;
-  const isActive = useCallback((path: string) => path === pathname, [pathname]);
+  const isActive = useCallback((path: string) => path === pathname || pathname.includes(`${path}/`), [pathname]);
 
   useEffect(() => {
     // Check if the current path matches any submenu item
