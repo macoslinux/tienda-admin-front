@@ -14,6 +14,10 @@ pnpm dev
 bun dev
 ```
 
+```sh
+rm -rf ./node_modules .turbo .next && pnpm store prune && rm ./pnpm-lock.yaml && pnpm up --recursive jose@latest zod@latest typescript@latest next@latest next-intl@latest tailwindcss@latest @tailwindcss/cli@latest @types/react@latest react@latest react-dom@latest @tailwindcss/postcss@latest postcss@latest && pnpm install
+```
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
