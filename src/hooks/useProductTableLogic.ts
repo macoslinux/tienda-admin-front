@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { normalizeStr } from "@/utils/helper";
 
 export type SortKey = "name" | "category" | "brand" | "price";
 
 export type ProductRow = {
+  stock: number;
   sku: string;
   name: string;
   variants: string;
   brand: string;
   category: string;
-  price: string; // ej: "$2,199.00"
+  price: number; // ej: "$2,199.00"
   status: string;
   image: string;
 };
@@ -19,16 +21,6 @@ function parsePrice(str: string): number {
   const cleaned = str.replace(/[^0-9.,-]/g, "").replace(/,/g, "");
   const num = Number.parseFloat(cleaned);
   return Number.isNaN(num) ? 0 : num;
-}
-
-// 🔎 util para normalizar (case/acentos)
-function normalizeStr(s: unknown): string {
-  return (s ?? "")
-    .toString()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
 }
 
 export function useProductTableLogic(products: ProductRow[], pageSize = 7) {

@@ -4,95 +4,106 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { ProductRow } from "@/hooks/useProductTableLogic";
+import { priceFormat } from "@/utils/currency";
+import { compareStrings, normalizeStr, parsePrice } from "@/utils/helper";
 
 const products: ProductRow[] = [
   {
+    stock: 0,
     sku: "7034020",
     name: "MacBook Pro 13”",
     variants: "2 Variants",
     brand: "Apple",
     category: "Laptop",
-    price: "$2399.00",
+    price: 2399.0,
     status: "Delivered",
     image: "/images/product/product-01.jpg", // Replace with actual image URL
   },
   {
+    stock: 10,
     sku: "7034021",
     name: "Apple Watch Ultra",
     variants: "1 Variant",
     brand: "Apple",
     category: "Watch",
-    price: "$879.00",
+    price: 879.0,
     status: "Pending",
     image: "/images/product/product-02.jpg", // Replace with actual image URL
   },
   {
+    stock: 10,
     sku: "7034022",
     name: "iPhone 15 Pro Max",
     variants: "2 Variants",
     brand: "Apple",
     category: "SmartPhone",
-    price: "$1869.00",
+    price: 1869.0,
     status: "Delivered",
     image: "/images/product/product-03.jpg", // Replace with actual image URL
   },
   {
+    stock: 10,
     sku: "7034023",
     name: "iPad Pro 3rd Gen",
     variants: "2 Variants",
     brand: "Apple",
     category: "Electronics",
-    price: "$1699.00",
+    price: 1699.0,
     status: "Canceled",
     image: "/images/product/product-04.jpg", // Replace with actual image URL
   },
   {
+    stock: 10,
     sku: "7034024",
     name: "AirPods Pro 2nd Gen",
     variants: "1 Variant",
     brand: "Apple",
     category: "Accessories",
-    price: "$240.00",
+    price: 240.0,
     status: "Delivered",
     image: "/images/product/product-05.jpg", // Replace with actual image URL
   },
   {
+    stock: 2,
     sku: "7034025",
     name: "Google Pixel 8 Pro",
     variants: "2 Variants",
     brand: "Google",
     category: "Phone",
-    price: "$899.00",
+    price: 899.0,
     status: "Pending",
     image: "/images/product/product-01.jpg", // Replace with actual image URL
   },
   {
+    stock: 10,
     sku: "7034026",
     name: "ASUS ROG Gaming Laptop",
     variants: "2 Variants",
     brand: "ASUS",
     category: "Laptop",
-    price: "$2,199.00",
+    price: 2199.0,
     status: "Delivered",
     image: "/images/product/product-02.jpg", // Replace with actual image URL
   },
   {
+    stock: 0,
     sku: "7034027",
     name: "ASUS ROG Gaming Laptop",
     variants: "2 Variants",
     brand: "ASUS",
     category: "Laptop",
-    price: "$2,199.00",
+    price: 2199.0,
     status: "Delivered",
     image: "/images/product/product-04.jpg", // Replace with actual image URL
   },
   {
+    stock: 10,
     sku: "7034028",
     name: "ASUS ROG Gaming Laptop",
     variants: "2 Variants",
     brand: "ASUS",
     category: "Laptop",
-    price: "$2,199.00",
+    price: 2199.0,
     status: "Delivered",
     image: "/images/product/product-03.jpg", // Replace with actual image URL
   },
@@ -100,19 +111,25 @@ const products: ProductRow[] = [
 
 export type SortKey = "name" | "category" | "brand" | "price";
 
+const compareByKey = (a: ProductRow, b: ProductRow, key: SortKey) => {
+  switch (key) {
+    case "name":
+      return compareStrings(a.name, b.name);
+    case "category":
+      return compareStrings(a.category, b.category);
+    case "brand":
+      return compareStrings(a.brand, b.brand);
+    case "price":
+      // OJO: tus datos tienen "$2399.00" y "$2199.00" mezclados: parseamos ambos.
+      return parsePrice(a.price) - parsePrice(b.price);
+  }
+};
+
 export default function Product() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 7;
-  const normalizeStr = (s: unknown) =>
-    (s ?? "")
-      .toString()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 'normalizeStr' es estable de módulo.
   const filtered = useMemo(() => {
     const q = normalizeStr(query);
     if (!q) return products;
@@ -126,6 +143,7 @@ export default function Product() {
         p.status,
         // también precio como texto sin símbolos para que "2199" haga match
         p.price
+          .toString()
           .replace(/[^0-9.,-]/g, "")
           .replace(/,/g, ""),
         p.price, // por si escriben con $
@@ -161,7 +179,19 @@ export default function Product() {
       : "text-gray-300 dark:text-gray-400/50";
 
   // (si ya tienes sort, úsalo aquí sobre 'filtered' en vez de 'products')
-  const sorted = filtered; // reemplaza por tu sort si ya lo implementaste
+
+  const sorted = useMemo(() => {
+    // sort estable: guardamos posición original para desempatar
+    const withIndex = filtered.map((item, idx) => ({ item, idx }));
+    withIndex.sort((x, y) => {
+      const cmp = compareByKey(x.item, y.item, sort.key);
+      if (cmp !== 0) return sort.dir === "asc" ? cmp : -cmp;
+      // estable: si son iguales por la key, mantener el orden original
+      return x.idx - y.idx;
+    });
+    return withIndex.map((x) => x.item);
+  }, [filtered, sort]);
+
   const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const startIndex = (page - 1) * pageSize;
@@ -572,12 +602,12 @@ export default function Product() {
                 </td>
                 <td className="px-5 py-4 whitespace-nowrap">
                   <p className="text-sm text-gray-700 dark:text-gray-400">
-                    ${product.price}
+                    {priceFormat({ value: product.price, simbol: "$" })}
                   </p>
                 </td>
                 <td className="px-5 py-4 whitespace-nowrap">
-                  <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-500">
-                    Out of Stock
+                  <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${product.stock > 0 ? "bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-500" : "bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-500"}`}>
+                    {product.stock === 0 ? "Out of Stock" : "In Stock"}
                   </span>
                 </td>
                 <td className="px-5 py-4 whitespace-nowrap">
